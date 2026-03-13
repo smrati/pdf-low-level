@@ -161,9 +161,10 @@ class PDFTokenizer:
         return tuple(self._buffer[:count])
 
     def _unread_byte(self, byte: int) -> None:
-        """Put a byte back into the buffer."""
-        self._buffer.append(byte)
+        """Put a byte back into the buffer at the front."""
+        self._buffer.insert(0, byte)
         self.offset -= 1
+        print(f"DEBUG _unread_byte: byte={chr(byte) if 32 <= byte < 127 else byte}, offset now={self.offset}, buffer={self._buffer}")
 
     def _skip_whitespace(self) -> None:
         """Skip whitespace characters."""
