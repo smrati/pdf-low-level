@@ -209,6 +209,7 @@ class PDFTokenizer:
             if char.isdigit() or char in "+-.":
                 num_bytes.append(byte)
             else:
+                print(f"DEBUG _read_number: unread byte {chr(byte) if 32 <= byte < 127 else byte} at offset {self.offset}")
                 self._unread_byte(byte)
                 break
 
