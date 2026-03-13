@@ -208,12 +208,19 @@ class XRefParser:
             print(f"DEBUG _parse_traditional_xref: Start obj: {start_obj}")
 
             # Get count
+            count_pos = self.source.tell()
             token = self.tokenizer.next_token()
             if token is None or token.type != TokenType.INTEGER:
                 raise ValueError(f"Expected count after start object, got {token}")
 
             count = token.value
-            print(f"DEBUG _parse_traditional_xref: Count: {count}")
+            print(f"DEBUG _parse_traditional_xref: Count token={token}, value={count}")
+            
+            # Debug: read next 20 bytes to see what's there
+            pos = self.source.tell()
+            peek = self.source.read(20)
+            self.source.seek(pos)
+            print(f"DEBUG _parse_traditional_xref: Next 20 bytes after count: {peek!r}")
 
             # Parse entries - read raw bytes and sync tokenizer
             for i in range(count):
