@@ -336,15 +336,20 @@ class PDFReader:
         """Load the page tree from the PDF."""
         # Get root catalog
         root_ref = self._xref_table.get_root_ref()
+        print(f"DEBUG _load_pages: root_ref = {root_ref}")
         if root_ref is None:
             raise PDFParseError("Could not find Root catalog in trailer")
 
         root = self.get_object(root_ref[0], root_ref[1])
+        print(f"DEBUG _load_pages: root = {root}")
+        print(f"DEBUG _load_pages: root type = {type(root)}")
         if root is None:
             raise PDFParseError("Could not read Root catalog object")
 
         # Get pages reference
         pages_ref = root.get("Pages")
+        print(f"DEBUG _load_pages: pages_ref = {pages_ref}")
+        print(f"DEBUG _load_pages: pages_ref type = {type(pages_ref)}")
         if pages_ref is None:
             raise PDFParseError("Could not find Pages in Root catalog")
 
@@ -352,6 +357,9 @@ class PDFReader:
             pages_obj = self.get_object(pages_ref.object_number, pages_ref.generation_number)
         else:
             pages_obj = pages_ref
+
+        print(f"DEBUG _load_pages: pages_obj = {pages_obj}")
+        print(f"DEBUG _load_pages: pages_obj type = {type(pages_obj)}")
 
         # Recursively load pages
         self._load_page_tree(pages_obj)
