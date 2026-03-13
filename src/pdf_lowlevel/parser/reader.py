@@ -146,7 +146,8 @@ class PDFReader:
         Returns:
             PDFIndirectObject or None
         """
-        self._file.seek(offset)
+        # Use tokenizer's seek to properly sync the buffer
+        self._tokenizer.seek(offset)
 
         # Read object header: n m obj
         obj_num = None
@@ -191,17 +192,16 @@ class PDFReader:
                 if third_token and third_token.type == TokenType.INDIRECT_REF:
                     return PDFIndirectRef(token.value, next_token.value)
                 else:
-                    # Put back tokens
+                    # Put back tokens - use tokenizer.seek() to clear buffer
                     if third_token:
-                        self._file.seek(third_token.offset)
-                    if next_token:
-                        self._file.seek(next_token.offset)
-                    self._file.seek(token.offset)
+                        self._tokenizer.seek(token.offset)
+                    elif next_token:
+                        self._tokenizer.seek(next_token.offset)
                     return self._parse_object_value()
             else:
                 # Put back and re-parse
                 if next_token:
-                    self._file.seek(next_token.offset)
+                    self._tokenizer.seek(next_token.offset)
                 return token.value
 
         elif token.type == TokenType.REAL:
@@ -248,8 +248,8 @@ class PDFReader:
             if token.type == TokenType.ARRAY_END:
                 break
 
-            # Put back and parse as object
-            self._file.seek(token.offset)
+            # Put back and parse as object - use tokenizer's seek to clear buffer
+            self._tokenizer.seek(token.offset)
             value = self._parse_object_value()
             array.append(value)
 
@@ -266,7 +266,6 @@ class PDFReader:
 
             if token.type == TokenType.DICT_END:
                 # Could be a stream
-                next_pos = self._file.tell()
                 next_token = self._tokenizer.next_token()
                 if next_token and next_token.type == TokenType.STREAM_START:
                     # It's a stream, parse stream data
@@ -274,7 +273,7 @@ class PDFReader:
                 else:
                     # Not a stream, put back
                     if next_token:
-                        self._file.seek(next_token.offset)
+                        self._tokenizer.seek(next_token.offset)
                 break
 
             if token.type == TokenType.NAME:
