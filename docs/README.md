@@ -16,20 +16,15 @@ Welcome to the **pdf-lowlevel** library documentation. This guide will help you 
 - [Tokenizer](tokenizer.md) - Converting PDF bytes to tokens
 - [Cross-Reference Table](xref.md) - Object location mapping
 - [PDF Reader](reader.md) - Main parsing orchestration
-- [Objects](objects.md) - PDF object model
 
 ### Content Processing
 - [Content Streams](content-streams.md) - Parsing page content
-- [Graphics State](graphics.md) - Coordinate transformations
-- [Fonts & Encoding](fonts.md) - Text decoding
 
 ### High-Level API
 - [Extractor API](extractor.md) - Simple text extraction interface
-- [Text Grouping](grouping.md) - Organizing text into lines/blocks
 
 ### Development
 - [Contributing](contributing.md) - How to contribute
-- [Testing](testing.md) - Test suite overview
 
 ## Quick Example
 
