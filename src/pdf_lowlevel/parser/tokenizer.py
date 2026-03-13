@@ -432,6 +432,7 @@ class PDFTokenizer:
 
             # Name
             if byte == ord("/"):
+                print(f"DEBUG tokenizer: found / at offset {self.offset-1}, reading name")
                 return self._read_name()
 
             # Literal string
