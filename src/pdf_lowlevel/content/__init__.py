@@ -19,6 +19,7 @@ from pdf_lowlevel.content.grouper import (
     TextGrouper,
     TextLine,
     TextBlock,
+    GroupingMode,
     group_text_elements,
 )
 
@@ -38,5 +39,6 @@ __all__ = [
     "TextGrouper",
     "TextLine",
     "TextBlock",
+    "GroupingMode",
     "group_text_elements",
 ]
