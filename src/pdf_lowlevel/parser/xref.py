@@ -223,8 +223,10 @@ class XRefParser:
                     xref_table.add_entry(obj_num, entry)
                     print(f"DEBUG _parse_traditional_xref: Added entry obj {obj_num}: offset={entry.offset}")
 
-            # Sync tokenizer position after reading raw bytes
+            # Sync tokenizer to current file position after reading raw bytes
+            current_pos = self.source.tell()
             self.tokenizer = PDFTokenizer(self.source)
+            self.tokenizer.seek(current_pos)
 
         print(f"DEBUG _parse_traditional_xref: Total entries: {len(xref_table.entries)}")
         return xref_table
