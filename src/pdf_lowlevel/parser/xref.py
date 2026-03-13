@@ -14,6 +14,17 @@ from pdf_lowlevel.parser.tokenizer import PDFTokenizer, Token, TokenType
 
 
 @dataclass
+class IndirectRef:
+    """Represents an indirect object reference (e.g., '1 0 R')."""
+
+    object_number: int
+    generation_number: int
+
+    def __repr__(self) -> str:
+        return f"IndirectRef({self.object_number}, {self.generation_number})"
+
+
+@dataclass
 class XRefEntry:
     """
     A single entry in the cross-reference table.
@@ -120,6 +131,13 @@ class XRefParser:
         """
         self.source = source
         self.tokenizer = PDFTokenizer(source)
+        self._pending_tokens: List[Token] = []
+
+    def _next_token(self) -> Optional[Token]:
+        """Get next token, checking pending tokens first."""
+        if self._pending_tokens:
+            return self._pending_tokens.pop(0)
+        return self.tokenizer.next_token()
 
     def parse(self) -> XRefTable:
         """
@@ -275,14 +293,13 @@ class XRefParser:
 
         # Expect 'trailer' keyword was just consumed
         # Next should be '<<'
-        token = self.tokenizer.next_token()
+        token = self._next_token()
         if token is None or token.type != TokenType.DICT_START:
             raise ValueError(f"Expected '<<' after trailer, got {token}")
 
         # Parse dictionary contents
-        # This is a simplified parser; full implementation would use object parser
         while True:
-            token = self.tokenizer.next_token()
+            token = self._next_token()
             if token is None:
                 break
 
@@ -291,11 +308,50 @@ class XRefParser:
 
             if token.type == TokenType.NAME:
                 key = token.value
-                value_token = self.tokenizer.next_token()
-                if value_token:
-                    trailer[key] = self._token_to_value(value_token)
+                value = self._parse_value()
+                if value is not None:
+                    trailer[key] = value
 
         return trailer
+
+    def _parse_value(self) -> any:
+        """
+        Parse a value from the trailer, handling indirect references.
+
+        Indirect references are: INTEGER INTEGER R
+        """
+        token = self._next_token()
+        if token is None:
+            return None
+
+        # Check if this could be start of an indirect reference
+        if token.type == TokenType.INTEGER:
+            # Peek at next token
+            next_token = self._next_token()
+
+            if next_token is None:
+                return token.value
+
+            if next_token.type == TokenType.INTEGER:
+                # Could be indirect reference, check for 'R'
+                third_token = self._next_token()
+
+                if third_token is not None and third_token.type == TokenType.INDIRECT_REF:
+                    # It's an indirect reference: obj_num gen_num R
+                    return IndirectRef(token.value, next_token.value)
+                else:
+                    # Not an indirect reference, put back tokens and return first value
+                    self._pending_tokens.append(next_token)
+                    if third_token is not None:
+                        self._pending_tokens.append(third_token)
+                    return token.value
+            else:
+                # Not an indirect reference
+                # Store the next token for re-reading
+                self._pending_tokens.append(next_token)
+                return token.value
+
+        return self._token_to_value(token)
 
     def _token_to_value(self, token: Token) -> any:
         """Convert a token to its Python value."""
