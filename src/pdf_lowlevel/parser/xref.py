@@ -180,29 +180,38 @@ class XRefParser:
         if token is None or token.type != TokenType.XREF:
             raise ValueError(f"Expected 'xref' keyword, got {token}")
 
+        print(f"DEBUG xref: Got xref keyword, token={token}")
+
         # Parse subsections
         while True:
             token = self.tokenizer.next_token()
 
+            print(f"DEBUG xref: Next token in loop: {token}")
+
             if token is None:
+                print("DEBUG xref: Token is None, breaking")
                 break
 
             # Check for trailer keyword
             if token.type == TokenType.TRAILER:
+                print("DEBUG xref: Found trailer, parsing trailer dict")
                 # Parse trailer dictionary
                 trailer_dict = self._parse_trailer()
                 xref_table.trailer.update(trailer_dict)
+                print(f"DEBUG xref: Trailer dict: {trailer_dict}")
                 break
 
             # Should be start object number
             if token.type != TokenType.INTEGER:
                 # Unknown token, might be at trailer
+                print(f"DEBUG xref: Non-integer token: {token.type}")
                 if token.type == TokenType.TRAILER:
                     trailer_dict = self._parse_trailer()
                     xref_table.trailer.update(trailer_dict)
                 break
 
             start_obj = token.value
+            print(f"DEBUG xref: Start obj: {start_obj}")
 
             # Get count
             token = self.tokenizer.next_token()
@@ -210,6 +219,7 @@ class XRefParser:
                 raise ValueError(f"Expected count after start object, got {token}")
 
             count = token.value
+            print(f"DEBUG xref: Count: {count}")
 
             # Parse entries
             for i in range(count):
@@ -217,7 +227,9 @@ class XRefParser:
                 entry = self._parse_xref_entry()
                 if entry is not None:
                     xref_table.add_entry(obj_num, entry)
+                    print(f"DEBUG xref: Added entry for obj {obj_num}: offset={entry.offset}")
 
+        print(f"DEBUG xref: Total entries parsed: {len(xref_table.entries)}")
         return xref_table
 
     def _parse_xref_entry(self) -> Optional[XRefEntry]:
