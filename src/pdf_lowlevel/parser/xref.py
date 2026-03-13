@@ -175,65 +175,77 @@ class XRefParser:
         if token is None or token.type != TokenType.XREF:
             raise ValueError(f"Expected 'xref' keyword, got {token}")
 
-        print(f"DEBUG _parse_traditional_xref: Got xref keyword")
-
         # Parse subsections
         while True:
-            token = self.tokenizer.next_token()
+            # Skip whitespace and read first non-whitespace
+            byte = self.source.read(1)
+            while byte and byte in b" \t\r\n":
+                byte = self.source.read(1)
 
-            if token is None:
-                print(f"DEBUG _parse_traditional_xref: Token is None, breaking")
+            if not byte:
                 break
 
-            print(f"DEBUG _parse_traditional_xref: Token: {token}")
-
-            # Check for trailer keyword
-            if token.type == TokenType.TRAILER:
-                # Parse trailer dictionary
-                trailer_dict = self._parse_trailer()
-                xref_table.trailer.update(trailer_dict)
-                print(f"DEBUG _parse_traditional_xref: Trailer: {trailer_dict}")
-                break
-
-            # Should be start object number
-            if token.type != TokenType.INTEGER:
-                # Unknown token, might be at trailer
-                print(f"DEBUG _parse_traditional_xref: Non-integer token type: {token.type}")
-                if token.type == TokenType.TRAILER:
+            # Check for 't' (start of 'trailer')
+            if byte == b"t":
+                # Read rest of 'trailer'
+                rest = self.source.read(6)
+                if rest == b"railer":
+                    # Parse trailer dictionary
                     trailer_dict = self._parse_trailer()
                     xref_table.trailer.update(trailer_dict)
+                    break
+                else:
+                    # Unknown, skip
+                    continue
+
+            # Should be a digit (start of subsection header: "n m")
+            if not byte.isdigit():
+                # Unknown token
                 break
 
-            start_obj = token.value
+            # Read start object number (we already have first digit)
+            start_bytes = [byte]
+            while True:
+                byte = self.source.read(1)
+                if byte and byte.isdigit():
+                    start_bytes.append(byte)
+                else:
+                    break
+
+            start_obj = int(b"".join(start_bytes))
             print(f"DEBUG _parse_traditional_xref: Start obj: {start_obj}")
 
-            # Get count
-            count_pos = self.source.tell()
-            token = self.tokenizer.next_token()
-            if token is None or token.type != TokenType.INTEGER:
-                raise ValueError(f"Expected count after start object, got {token}")
+            # Skip whitespace before count
+            while byte and byte in b" \t":
+                byte = self.source.read(1)
 
-            count = token.value
-            print(f"DEBUG _parse_traditional_xref: Count token={token}, value={count}")
-            
-            # Debug: read next 20 bytes to see what's there
-            pos = self.source.tell()
-            peek = self.source.read(20)
-            self.source.seek(pos)
-            print(f"DEBUG _parse_traditional_xref: Next 20 bytes after count: {peek!r}")
+            # Read count
+            count_bytes = []
+            while byte and byte.isdigit():
+                count_bytes.append(byte)
+                byte = self.source.read(1)
 
-            # Parse entries - read raw bytes and sync tokenizer
+            if not count_bytes:
+                raise ValueError("Expected count after start object")
+
+            count = int(b"".join(count_bytes))
+            print(f"DEBUG _parse_traditional_xref: Count: {count}")
+
+            # Skip to end of line
+            while byte and byte not in b"\r\n":
+                byte = self.source.read(1)
+            if byte == b"\r":
+                next_byte = self.source.read(1)
+                if next_byte != b"\n":
+                    self.source.seek(-1, 1)
+
+            # Parse entries
             for i in range(count):
                 obj_num = start_obj + i
                 entry = self._parse_xref_entry()
                 if entry is not None:
                     xref_table.add_entry(obj_num, entry)
                     print(f"DEBUG _parse_traditional_xref: Added entry obj {obj_num}: offset={entry.offset}")
-
-            # Sync tokenizer to current file position after reading raw bytes
-            current_pos = self.source.tell()
-            self.tokenizer = PDFTokenizer(self.source)
-            self.tokenizer.seek(current_pos)
 
         print(f"DEBUG _parse_traditional_xref: Total entries: {len(xref_table.entries)}")
         return xref_table
