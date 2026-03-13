@@ -61,6 +61,7 @@ class PDFReader:
             self._file = source
 
         self._tokenizer = PDFTokenizer(self._file)
+        self._pending_tokens: List[Token] = []
 
     def close(self) -> None:
         """Close the PDF file if we own it."""
@@ -172,6 +173,12 @@ class PDFReader:
 
         return PDFIndirectObject(obj_num, gen_num, value)
 
+    def _next_token(self) -> Optional[Token]:
+        """Get next token, checking pending tokens first."""
+        if self._pending_tokens:
+            return self._pending_tokens.pop(0)
+        return self._tokenizer.next_token()
+
     def _parse_object_value(self) -> PDFObject:
         """
         Parse an object value from the current position.
@@ -179,29 +186,31 @@ class PDFReader:
         Returns:
             Parsed PDF object
         """
-        token = self._tokenizer.next_token()
+        token = self._next_token()
         if token is None:
             raise PDFParseError("Unexpected end of file while parsing object")
 
         # Handle different token types
         if token.type == TokenType.INTEGER:
             # Could be an indirect reference: n m R
-            next_token = self._tokenizer.next_token()
+            next_token = self._next_token()
             if next_token and next_token.type == TokenType.INTEGER:
                 third_token = self._tokenizer.next_token()
                 if third_token and third_token.type == TokenType.INDIRECT_REF:
                     return PDFIndirectRef(token.value, next_token.value)
                 else:
-                    # Put back tokens - use tokenizer.seek() to clear buffer
+                    # Not an indirect reference - we need to return the first integer
+                    # and push back the other two tokens for later parsing
+                    # We'll use a pending token mechanism
                     if third_token:
-                        self._tokenizer.seek(token.offset)
-                    elif next_token:
-                        self._tokenizer.seek(next_token.offset)
-                    return self._parse_object_value()
+                        self._pending_tokens.insert(0, third_token)
+                    self._pending_tokens.insert(0, next_token)
+                    return token.value
+            elif next_token:
+                # Not an indirect reference, push back and return the integer
+                self._pending_tokens.insert(0, next_token)
+                return token.value
             else:
-                # Put back and re-parse
-                if next_token:
-                    self._tokenizer.seek(next_token.offset)
                 return token.value
 
         elif token.type == TokenType.REAL:
@@ -240,16 +249,15 @@ class PDFReader:
         array = []
 
         while True:
-            # Peek at next token
-            token = self._tokenizer.next_token()
+            token = self._next_token()
             if token is None:
                 break
 
             if token.type == TokenType.ARRAY_END:
                 break
 
-            # Put back and parse as object - use tokenizer's seek to clear buffer
-            self._tokenizer.seek(token.offset)
+            # Put back and parse as object
+            self._pending_tokens.insert(0, token)
             value = self._parse_object_value()
             array.append(value)
 
@@ -260,20 +268,20 @@ class PDFReader:
         dictionary = {}
 
         while True:
-            token = self._tokenizer.next_token()
+            token = self._next_token()
             if token is None:
                 break
 
             if token.type == TokenType.DICT_END:
                 # Could be a stream
-                next_token = self._tokenizer.next_token()
+                next_token = self._next_token()
                 if next_token and next_token.type == TokenType.STREAM_START:
                     # It's a stream, parse stream data
                     return self._parse_stream(dictionary)
                 else:
                     # Not a stream, put back
                     if next_token:
-                        self._tokenizer.seek(next_token.offset)
+                        self._pending_tokens.insert(0, next_token)
                 break
 
             if token.type == TokenType.NAME:
