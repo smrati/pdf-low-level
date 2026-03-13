@@ -213,7 +213,6 @@ class XRefParser:
                     break
 
             start_obj = int(b"".join(start_bytes))
-            print(f"DEBUG _parse_traditional_xref: Start obj: {start_obj}")
 
             # Skip whitespace before count
             while byte and byte in b" \t":
@@ -229,7 +228,6 @@ class XRefParser:
                 raise ValueError("Expected count after start object")
 
             count = int(b"".join(count_bytes))
-            print(f"DEBUG _parse_traditional_xref: Count: {count}")
 
             # Skip to end of line
             while byte and byte not in b"\r\n":
@@ -245,9 +243,7 @@ class XRefParser:
                 entry = self._parse_xref_entry()
                 if entry is not None:
                     xref_table.add_entry(obj_num, entry)
-                    print(f"DEBUG _parse_traditional_xref: Added entry obj {obj_num}: offset={entry.offset}")
 
-        print(f"DEBUG _parse_traditional_xref: Total entries: {len(xref_table.entries)}")
         return xref_table
 
     def _parse_xref_entry(self) -> Optional[XRefEntry]:
@@ -527,14 +523,10 @@ def parse_xref(source: BinaryIO) -> XRefTable:
             break  # Avoid infinite loop
         prev_offsets.add(prev_offset)
 
-        print(f"DEBUG parse_xref: Following Prev to offset {prev_offset}")
-
         # Parse previous xref
         source.seek(prev_offset)
         prev_parser = XRefParser(source)
         prev_xref = prev_parser.parse()
-
-        print(f"DEBUG parse_xref: Prev xref has {len(prev_xref.entries)} entries")
 
         # Merge entries (don't overwrite newer entries)
         for obj_num, entry in prev_xref.entries.items():
@@ -544,5 +536,4 @@ def parse_xref(source: BinaryIO) -> XRefTable:
         # Remove Prev from trailer after processing
         xref_table.trailer.pop("Prev", None)
 
-    print(f"DEBUG parse_xref: Total entries after all Prev: {len(xref_table.entries)}")
     return xref_table
