@@ -175,29 +175,37 @@ class XRefParser:
         if token is None or token.type != TokenType.XREF:
             raise ValueError(f"Expected 'xref' keyword, got {token}")
 
+        print(f"DEBUG _parse_traditional_xref: Got xref keyword")
+
         # Parse subsections
         while True:
             token = self.tokenizer.next_token()
 
             if token is None:
+                print(f"DEBUG _parse_traditional_xref: Token is None, breaking")
                 break
+
+            print(f"DEBUG _parse_traditional_xref: Token: {token}")
 
             # Check for trailer keyword
             if token.type == TokenType.TRAILER:
                 # Parse trailer dictionary
                 trailer_dict = self._parse_trailer()
                 xref_table.trailer.update(trailer_dict)
+                print(f"DEBUG _parse_traditional_xref: Trailer: {trailer_dict}")
                 break
 
             # Should be start object number
             if token.type != TokenType.INTEGER:
                 # Unknown token, might be at trailer
+                print(f"DEBUG _parse_traditional_xref: Non-integer token type: {token.type}")
                 if token.type == TokenType.TRAILER:
                     trailer_dict = self._parse_trailer()
                     xref_table.trailer.update(trailer_dict)
                 break
 
             start_obj = token.value
+            print(f"DEBUG _parse_traditional_xref: Start obj: {start_obj}")
 
             # Get count
             token = self.tokenizer.next_token()
@@ -205,6 +213,7 @@ class XRefParser:
                 raise ValueError(f"Expected count after start object, got {token}")
 
             count = token.value
+            print(f"DEBUG _parse_traditional_xref: Count: {count}")
 
             # Parse entries - read raw bytes and sync tokenizer
             for i in range(count):
@@ -212,10 +221,12 @@ class XRefParser:
                 entry = self._parse_xref_entry()
                 if entry is not None:
                     xref_table.add_entry(obj_num, entry)
+                    print(f"DEBUG _parse_traditional_xref: Added entry obj {obj_num}: offset={entry.offset}")
 
             # Sync tokenizer position after reading raw bytes
             self.tokenizer = PDFTokenizer(self.source)
 
+        print(f"DEBUG _parse_traditional_xref: Total entries: {len(xref_table.entries)}")
         return xref_table
 
     def _parse_xref_entry(self) -> Optional[XRefEntry]:
