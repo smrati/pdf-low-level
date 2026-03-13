@@ -21,6 +21,7 @@ Welcome to the **pdf-lowlevel** library documentation. This guide will help you 
 - [Content Streams](content-streams.md) - Parsing page content
 
 ### High-Level API
+- [API Documentation](api_docs.md) - Comprehensive usage guide for developers
 - [Extractor API](extractor.md) - Simple text extraction interface
 - [Text Grouping](grouping.md) - Organizing text into lines/blocks
 
