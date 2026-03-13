@@ -28,6 +28,9 @@ Welcome to the **pdf-lowlevel** library documentation. This guide will help you 
 ### Development
 - [Contributing](contributing.md) - How to contribute
 
+### Testing
+- [Test Suite Documentation](doc_tests/README.md) - Comprehensive test documentation (143 tests)
+
 ## Quick Example
 
 ```python
