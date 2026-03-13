@@ -11,6 +11,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, BinaryIO, Dict, List, Optional, Union
 
+from pdf_lowlevel.logger import logger
 from pdf_lowlevel.parser.objects import (
     PDFIndirectObject,
     PDFIndirectRef,
@@ -83,14 +84,21 @@ class PDFReader:
 
         Must be called before accessing objects.
         """
+        logger.debug("Starting PDF parsing")
+
         # Verify PDF header
         self._verify_header()
+        logger.debug(f"PDF version: {self.version}")
 
         # Parse xref table
+        logger.debug("Parsing cross-reference table")
         self._xref_table = parse_xref(self._file)
+        logger.debug(f"XRef table loaded with {len(self._xref_table.entries)} entries")
 
         # Load page tree
+        logger.debug("Loading page tree")
         self._load_pages()
+        logger.info(f"PDF loaded: {self._page_count} pages")
 
     def _verify_header(self) -> None:
         """Verify the PDF file header."""

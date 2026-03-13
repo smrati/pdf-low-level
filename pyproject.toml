@@ -13,6 +13,9 @@ authors = [
     {name = "PDF Low-Level Team"}
 ]
 keywords = ["pdf", "parser", "extraction", "layout", "text"]
+dependencies = [
+    "loguru>=0.7.0",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

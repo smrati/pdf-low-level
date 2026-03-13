@@ -15,6 +15,7 @@ from pdf_lowlevel.extract import (
     extract_text,
 )
 from pdf_lowlevel.content.stream import TextElement
+from pdf_lowlevel.logger import logger, configure_logger
 
 __all__ = [
     "PDFExtractor",
@@ -23,5 +24,7 @@ __all__ = [
     "TextElement",
     "extract_text",
     "extract_json",
+    "logger",
+    "configure_logger",
     "__version__",
 ]

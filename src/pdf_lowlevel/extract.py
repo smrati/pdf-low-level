@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, BinaryIO, Dict, List, Optional, Union
 
 from pdf_lowlevel.content.stream import ContentStreamParser, TextElement
+from pdf_lowlevel.logger import logger
 from pdf_lowlevel.parser.objects import PDFIndirectRef, PDFName, PDFStream
 from pdf_lowlevel.parser.reader import PDFReader, open_pdf
 
@@ -90,6 +91,7 @@ class PDFExtractor:
         self.source = source
         self._reader: Optional[PDFReader] = None
         self._fonts: Dict[str, Any] = {}
+        logger.debug(f"Initialized PDFExtractor with source type: {type(source).__name__}")
 
     def _ensure_reader(self) -> PDFReader:
         """Ensure the PDF reader is initialized."""
@@ -123,6 +125,7 @@ class PDFExtractor:
             result.filename = str(Path(self.source).name)
 
         result.page_count = reader.page_count
+        logger.info(f"Extracting from '{result.filename}' ({reader.page_count} pages)")
 
         # Set page range
         if end_page is None:
@@ -130,17 +133,21 @@ class PDFExtractor:
         end_page = min(end_page, reader.page_count)
 
         # Load fonts from first page resources
+        logger.debug("Loading fonts from page resources")
         self._load_fonts(0)
 
         # Extract each page
         for page_num in range(start_page, end_page):
+            logger.debug(f"Extracting page {page_num + 1}")
             page_result = self._extract_page(page_num)
             result.pages.append(page_result)
+            logger.debug(f"Page {page_num + 1}: {len(page_result.elements)} text elements")
 
         # Add metadata
         if include_metadata:
             result.metadata = self._get_metadata()
 
+        logger.info(f"Extraction complete: {sum(len(p.elements) for p in result.pages)} total elements")
         return result
 
     def _extract_page(self, page_num: int) -> PageResult:
