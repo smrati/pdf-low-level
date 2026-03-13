@@ -4,16 +4,17 @@ This directory contains comprehensive documentation for the pdf-lowlevel test su
 
 ## Overview
 
-The test suite uses **pytest** and consists of **143 tests** across 4 test modules, with 4 tests skipped (text extraction features not fully implemented).
+The test suite uses **pytest** and consists of **211 tests** across 5 test modules, with 10 tests skipped (text extraction features not fully implemented).
 
 ```
 tests/
-├── __init__.py         # Package marker
-├── conftest.py         # Shared fixtures and test utilities
-├── test_tokenizer.py   # 47 tests for PDF tokenization
-├── test_xref.py        # 26 tests for cross-reference table parsing
-├── test_reader.py      # 32 tests for PDF reading
-└── test_extractor.py   # 38 tests for high-level extraction API
+├── __init__.py            # Package marker
+├── conftest.py            # Shared fixtures and test utilities
+├── test_tokenizer.py      # 47 tests for PDF tokenization
+├── test_xref.py           # 26 tests for cross-reference table parsing
+├── test_reader.py         # 32 tests for PDF reading
+├── test_extractor.py      # 38 tests for high-level extraction API
+└── test_api_usecases.py   # 68 tests for API documentation use cases
 ```
 
 ## Running Tests
@@ -50,6 +51,7 @@ uv run pytest -q
 | [test_xref.md](test_xref.md) | Cross-reference table tests | 26 |
 | [test_reader.md](test_reader.md) | PDF reader tests | 32 |
 | [test_extractor.md](test_extractor.md) | Extraction API tests | 38 |
+| [test_api_usecases.md](test_api_usecases.md) | API documentation use cases | 68 |
 
 ## Test Categories
 
@@ -89,15 +91,21 @@ The test suite uses dynamically generated PDFs created in `conftest.py`:
 ## Test Results Summary
 
 ```
-=================================== 143 passed, 4 skipped in 0.11s ===================================
+=================================== 201 passed, 10 skipped in 0.11s ===================================
 ```
 
 ### Skipped Tests
-4 tests are skipped because text extraction is not fully implemented:
+10 tests are skipped because text extraction is not fully implemented:
 - `test_text_element_properties`
 - `test_text_element_bbox`
 - `test_text_element_to_dict`
 - `test_text_element_repr`
+- `test_element_has_position_attributes` (API use cases)
+- `test_filter_by_region` (API use cases)
+- `test_filter_by_font_size` (API use cases)
+- `test_filter_left_column` (API use cases)
+- `test_bbox_property` (API use cases)
+- `test_to_dict_method` (TextElement, API use cases)
 
 ## Contributing Tests
 
