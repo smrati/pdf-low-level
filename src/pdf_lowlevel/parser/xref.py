@@ -154,16 +154,21 @@ class XRefParser:
         while byte and byte in b" \t\r\n":
             byte = self.source.read(1)
 
+        print(f"DEBUG xref: First byte at pos {pos}: {byte!r}")
+        
         self.source.seek(pos)
 
         if byte == b"x":
             # Traditional xref table
+            print("DEBUG xref: Parsing traditional xref table")
             return self._parse_traditional_xref()
         elif byte and byte.isdigit():
             # Likely an xref stream (starts with object number)
+            print("DEBUG xref: Parsing xref stream")
             return self._parse_xref_stream()
         else:
             # Try to find trailer anyway
+            print("DEBUG xref: Parsing trailer only")
             return self._parse_trailer_only()
 
     def _parse_traditional_xref(self) -> XRefTable:
