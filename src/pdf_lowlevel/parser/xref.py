@@ -154,21 +154,16 @@ class XRefParser:
         while byte and byte in b" \t\r\n":
             byte = self.source.read(1)
 
-        print(f"DEBUG xref: First byte at pos {pos}: {byte!r}")
-        
         self.source.seek(pos)
 
         if byte == b"x":
             # Traditional xref table
-            print("DEBUG xref: Parsing traditional xref table")
             return self._parse_traditional_xref()
         elif byte and byte.isdigit():
             # Likely an xref stream (starts with object number)
-            print("DEBUG xref: Parsing xref stream")
             return self._parse_xref_stream()
         else:
             # Try to find trailer anyway
-            print("DEBUG xref: Parsing trailer only")
             return self._parse_trailer_only()
 
     def _parse_traditional_xref(self) -> XRefTable:
@@ -180,38 +175,29 @@ class XRefParser:
         if token is None or token.type != TokenType.XREF:
             raise ValueError(f"Expected 'xref' keyword, got {token}")
 
-        print(f"DEBUG xref: Got xref keyword, token={token}")
-
         # Parse subsections
         while True:
             token = self.tokenizer.next_token()
 
-            print(f"DEBUG xref: Next token in loop: {token}")
-
             if token is None:
-                print("DEBUG xref: Token is None, breaking")
                 break
 
             # Check for trailer keyword
             if token.type == TokenType.TRAILER:
-                print("DEBUG xref: Found trailer, parsing trailer dict")
                 # Parse trailer dictionary
                 trailer_dict = self._parse_trailer()
                 xref_table.trailer.update(trailer_dict)
-                print(f"DEBUG xref: Trailer dict: {trailer_dict}")
                 break
 
             # Should be start object number
             if token.type != TokenType.INTEGER:
                 # Unknown token, might be at trailer
-                print(f"DEBUG xref: Non-integer token: {token.type}")
                 if token.type == TokenType.TRAILER:
                     trailer_dict = self._parse_trailer()
                     xref_table.trailer.update(trailer_dict)
                 break
 
             start_obj = token.value
-            print(f"DEBUG xref: Start obj: {start_obj}")
 
             # Get count
             token = self.tokenizer.next_token()
@@ -219,7 +205,6 @@ class XRefParser:
                 raise ValueError(f"Expected count after start object, got {token}")
 
             count = token.value
-            print(f"DEBUG xref: Count: {count}")
 
             # Parse entries
             for i in range(count):
@@ -227,9 +212,7 @@ class XRefParser:
                 entry = self._parse_xref_entry()
                 if entry is not None:
                     xref_table.add_entry(obj_num, entry)
-                    print(f"DEBUG xref: Added entry for obj {obj_num}: offset={entry.offset}")
 
-        print(f"DEBUG xref: Total entries parsed: {len(xref_table.entries)}")
         return xref_table
 
     def _parse_xref_entry(self) -> Optional[XRefEntry]:
@@ -475,6 +458,8 @@ def parse_xref(source: BinaryIO) -> XRefTable:
     """
     Parse the cross-reference table from a PDF file.
 
+    Handles incremental updates by following the Prev chain.
+
     Args:
         source: Binary file-like object opened in binary mode
 
@@ -484,9 +469,40 @@ def parse_xref(source: BinaryIO) -> XRefTable:
     # Find the xref offset
     xref_offset = find_xref_offset(source)
 
-    # Seek to xref position
+    # Parse the main xref
     source.seek(xref_offset)
-
-    # Parse the xref
     parser = XRefParser(source)
-    return parser.parse()
+    xref_table = parser.parse()
+
+    # Follow Prev chain for incremental updates
+    prev_offsets = set()  # Avoid infinite loops
+    while True:
+        prev_offset = xref_table.trailer.get("Prev")
+        if prev_offset is None:
+            break
+
+        # Handle IndirectRef if needed
+        if hasattr(prev_offset, 'object_number'):
+            # It's a reference, but Prev should be an integer
+            # This is unusual, skip it
+            break
+
+        prev_offset = int(prev_offset)
+        if prev_offset in prev_offsets:
+            break  # Avoid infinite loop
+        prev_offsets.add(prev_offset)
+
+        # Parse previous xref
+        source.seek(prev_offset)
+        prev_parser = XRefParser(source)
+        prev_xref = prev_parser.parse()
+
+        # Merge entries (don't overwrite newer entries)
+        for obj_num, entry in prev_xref.entries.items():
+            if obj_num not in xref_table.entries:
+                xref_table.add_entry(obj_num, entry)
+
+        # Remove Prev from trailer after processing
+        xref_table.trailer.pop("Prev", None)
+
+    return xref_table

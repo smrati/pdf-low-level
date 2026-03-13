@@ -330,16 +330,7 @@ class PDFReader:
         # Get root catalog
         root_ref = self._xref_table.get_root_ref()
         if root_ref is None:
-            # Debug: print trailer contents
-            print(f"DEBUG: Trailer contents: {self._xref_table.trailer}")
             raise PDFParseError("Could not find Root catalog in trailer")
-
-        print(f"DEBUG: Root ref: {root_ref}")
-        
-        # Debug: check if entry exists
-        entry = self._xref_table.get_entry(root_ref[0])
-        print(f"DEBUG: Entry for object {root_ref[0]}: {entry}")
-        print(f"DEBUG: Total entries in xref: {len(self._xref_table.entries)}")
 
         root = self.get_object(root_ref[0], root_ref[1])
         if root is None:
