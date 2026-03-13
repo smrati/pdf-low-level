@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, BinaryIO, Dict, List, Optional, Union
 
 from pdf_lowlevel.content.stream import ContentStreamParser, TextElement
+from pdf_lowlevel.content.grouper import TextGrouper, TextLine, TextBlock
 from pdf_lowlevel.logger import logger
 from pdf_lowlevel.parser.objects import PDFIndirectRef, PDFName, PDFStream
 from pdf_lowlevel.parser.reader import PDFReader, open_pdf
@@ -26,14 +27,47 @@ class PageResult:
     width: float
     height: float
     elements: List[TextElement] = field(default_factory=list)
+    lines: List[TextLine] = field(default_factory=list)
+    blocks: List[TextBlock] = field(default_factory=list)
+    
+    # Grouping parameters (used when computing lines/blocks)
+    _y_tolerance: float = field(default=2.0, repr=False)
+    _x_tolerance: float = field(default=5.0, repr=False)
+    _space_width: float = field(default=3.0, repr=False)
+
+    def _ensure_grouped(self) -> None:
+        """Ensure lines and blocks are computed."""
+        if not self.lines and self.elements:
+            grouper = TextGrouper(
+                self.elements,
+                y_tolerance=self._y_tolerance,
+                x_tolerance=self._x_tolerance,
+                space_width=self._space_width,
+            )
+            self.lines = grouper.group_into_lines()
+            self.blocks = grouper.group_into_blocks()
+
+    def get_text(self) -> str:
+        """Get page text as a string (lines joined by newline)."""
+        self._ensure_grouped()
+        return "\n".join(line.text for line in self.lines)
+
+    def get_text_with_blocks(self) -> str:
+        """Get page text with paragraph separation."""
+        self._ensure_grouped()
+        return "\n\n".join(block.text for block in self.blocks)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
+        self._ensure_grouped()
         return {
             "page_number": self.page_number,
             "width": self.width,
             "height": self.height,
+            "text": self.get_text(),
             "elements": [e.to_dict() for e in self.elements],
+            "lines": [line.to_dict() for line in self.lines],
+            "blocks": [block.to_dict() for block in self.blocks],
         }
 
 
@@ -60,11 +94,10 @@ class ExtractionResult:
         return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False)
 
     def get_all_text(self) -> str:
-        """Get all text as a single string."""
+        """Get all text as a single string (uses grouped lines)."""
         texts = []
         for page in self.pages:
-            page_text = " ".join(e.text for e in page.elements)
-            texts.append(page_text)
+            texts.append(page.get_text())
         return "\n\n".join(texts)
 
 
