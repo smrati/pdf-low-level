@@ -276,6 +276,7 @@ class PDFReader:
 
         while True:
             token = self._next_token()
+            print(f"DEBUG _parse_dictionary: token = {token}")
             if token is None:
                 break
 
