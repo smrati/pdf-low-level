@@ -22,6 +22,7 @@ Welcome to the **pdf-lowlevel** library documentation. This guide will help you 
 
 ### High-Level API
 - [Extractor API](extractor.md) - Simple text extraction interface
+- [Text Grouping](grouping.md) - Organizing text into lines/blocks
 
 ### Development
 - [Contributing](contributing.md) - How to contribute
