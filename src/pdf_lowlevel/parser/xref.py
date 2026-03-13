@@ -495,10 +495,14 @@ def parse_xref(source: BinaryIO) -> XRefTable:
             break  # Avoid infinite loop
         prev_offsets.add(prev_offset)
 
+        print(f"DEBUG parse_xref: Following Prev to offset {prev_offset}")
+
         # Parse previous xref
         source.seek(prev_offset)
         prev_parser = XRefParser(source)
         prev_xref = prev_parser.parse()
+
+        print(f"DEBUG parse_xref: Prev xref has {len(prev_xref.entries)} entries")
 
         # Merge entries (don't overwrite newer entries)
         for obj_num, entry in prev_xref.entries.items():
@@ -508,4 +512,5 @@ def parse_xref(source: BinaryIO) -> XRefTable:
         # Remove Prev from trailer after processing
         xref_table.trailer.pop("Prev", None)
 
+    print(f"DEBUG parse_xref: Total entries after all Prev: {len(xref_table.entries)}")
     return xref_table
