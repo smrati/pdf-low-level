@@ -149,6 +149,8 @@ class PDFReader:
         """
         # Use tokenizer's seek to properly sync the buffer
         self._tokenizer.seek(offset)
+        # Clear any pending tokens from previous parsing
+        self._pending_tokens.clear()
 
         # Read object header: n m obj
         obj_num = None
@@ -191,6 +193,7 @@ class PDFReader:
             Parsed PDF object
         """
         token = self._next_token()
+        print(f"DEBUG _parse_object_value: first token = {token}")
         if token is None:
             raise PDFParseError("Unexpected end of file while parsing object")
 
