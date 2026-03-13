@@ -155,21 +155,25 @@ class PDFReader:
         gen_num = None
 
         token = self._tokenizer.next_token()
+        print(f"DEBUG _parse_indirect_object({offset}): first token = {token}")
         if token is None or token.type != TokenType.INTEGER:
             return None
         obj_num = token.value
 
         token = self._tokenizer.next_token()
+        print(f"DEBUG _parse_indirect_object({offset}): second token = {token}")
         if token is None or token.type != TokenType.INTEGER:
             return None
         gen_num = token.value
 
         token = self._tokenizer.next_token()
+        print(f"DEBUG _parse_indirect_object({offset}): third token = {token}")
         if token is None or token.type != TokenType.OBJ_START:
             return None
 
         # Parse the object value
         value = self._parse_object_value()
+        print(f"DEBUG _parse_indirect_object({offset}): parsed value type = {type(value)}")
 
         return PDFIndirectObject(obj_num, gen_num, value)
 
