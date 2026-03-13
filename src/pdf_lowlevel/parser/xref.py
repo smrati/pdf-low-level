@@ -206,12 +206,15 @@ class XRefParser:
 
             count = token.value
 
-            # Parse entries
+            # Parse entries - read raw bytes and sync tokenizer
             for i in range(count):
                 obj_num = start_obj + i
                 entry = self._parse_xref_entry()
                 if entry is not None:
                     xref_table.add_entry(obj_num, entry)
+
+            # Sync tokenizer position after reading raw bytes
+            self.tokenizer = PDFTokenizer(self.source)
 
         return xref_table
 
