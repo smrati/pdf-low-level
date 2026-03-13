@@ -202,7 +202,7 @@ class PDFReader:
             # Could be an indirect reference: n m R
             next_token = self._next_token()
             if next_token and next_token.type == TokenType.INTEGER:
-                third_token = self._tokenizer.next_token()
+                third_token = self._next_token()
                 if third_token and third_token.type == TokenType.INDIRECT_REF:
                     return PDFIndirectRef(token.value, next_token.value)
                 else:
