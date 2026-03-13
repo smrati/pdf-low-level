@@ -157,25 +157,21 @@ class PDFReader:
         gen_num = None
 
         token = self._tokenizer.next_token()
-        print(f"DEBUG _parse_indirect_object({offset}): first token = {token}")
         if token is None or token.type != TokenType.INTEGER:
             return None
         obj_num = token.value
 
         token = self._tokenizer.next_token()
-        print(f"DEBUG _parse_indirect_object({offset}): second token = {token}")
         if token is None or token.type != TokenType.INTEGER:
             return None
         gen_num = token.value
 
         token = self._tokenizer.next_token()
-        print(f"DEBUG _parse_indirect_object({offset}): third token = {token}")
         if token is None or token.type != TokenType.OBJ_START:
             return None
 
         # Parse the object value
         value = self._parse_object_value()
-        print(f"DEBUG _parse_indirect_object({offset}): parsed value type = {type(value)}")
 
         return PDFIndirectObject(obj_num, gen_num, value)
 
@@ -193,7 +189,6 @@ class PDFReader:
             Parsed PDF object
         """
         token = self._next_token()
-        print(f"DEBUG _parse_object_value: first token = {token}")
         if token is None:
             raise PDFParseError("Unexpected end of file while parsing object")
 
@@ -276,7 +271,6 @@ class PDFReader:
 
         while True:
             token = self._next_token()
-            print(f"DEBUG _parse_dictionary: token = {token}")
             if token is None:
                 break
 
@@ -344,20 +338,15 @@ class PDFReader:
         """Load the page tree from the PDF."""
         # Get root catalog
         root_ref = self._xref_table.get_root_ref()
-        print(f"DEBUG _load_pages: root_ref = {root_ref}")
         if root_ref is None:
             raise PDFParseError("Could not find Root catalog in trailer")
 
         root = self.get_object(root_ref[0], root_ref[1])
-        print(f"DEBUG _load_pages: root = {root}")
-        print(f"DEBUG _load_pages: root type = {type(root)}")
         if root is None:
             raise PDFParseError("Could not read Root catalog object")
 
         # Get pages reference
         pages_ref = root.get("Pages")
-        print(f"DEBUG _load_pages: pages_ref = {pages_ref}")
-        print(f"DEBUG _load_pages: pages_ref type = {type(pages_ref)}")
         if pages_ref is None:
             raise PDFParseError("Could not find Pages in Root catalog")
 
@@ -365,9 +354,6 @@ class PDFReader:
             pages_obj = self.get_object(pages_ref.object_number, pages_ref.generation_number)
         else:
             pages_obj = pages_ref
-
-        print(f"DEBUG _load_pages: pages_obj = {pages_obj}")
-        print(f"DEBUG _load_pages: pages_obj type = {type(pages_obj)}")
 
         # Recursively load pages
         self._load_page_tree(pages_obj)

@@ -164,7 +164,6 @@ class PDFTokenizer:
         """Put a byte back into the buffer at the front."""
         self._buffer.insert(0, byte)
         self.offset -= 1
-        print(f"DEBUG _unread_byte: byte={chr(byte) if 32 <= byte < 127 else byte}, offset now={self.offset}, buffer={self._buffer}")
 
     def _skip_whitespace(self) -> None:
         """Skip whitespace characters."""
@@ -210,7 +209,6 @@ class PDFTokenizer:
             if char.isdigit() or char in "+-.":
                 num_bytes.append(byte)
             else:
-                print(f"DEBUG _read_number: unread byte {chr(byte) if 32 <= byte < 127 else byte} at offset {self.offset}")
                 self._unread_byte(byte)
                 break
 
@@ -227,11 +225,8 @@ class PDFTokenizer:
         start_offset = self.offset - 1  # Include the /
         name_bytes = []
 
-        print(f"DEBUG _read_name: starting at offset {start_offset}, current offset {self.offset}")
-
         while True:
             byte = self._read_byte()
-            print(f"DEBUG _read_name: read byte {chr(byte) if 32 <= byte < 127 else byte} at offset {self.offset}")
             if byte == -1:
                 break
 
@@ -437,7 +432,6 @@ class PDFTokenizer:
 
             # Name
             if byte == ord("/"):
-                print(f"DEBUG tokenizer: found / at offset {self.offset-1}, reading name")
                 return self._read_name()
 
             # Literal string
