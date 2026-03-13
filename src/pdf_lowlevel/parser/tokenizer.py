@@ -226,8 +226,11 @@ class PDFTokenizer:
         start_offset = self.offset - 1  # Include the /
         name_bytes = []
 
+        print(f"DEBUG _read_name: starting at offset {start_offset}, current offset {self.offset}")
+
         while True:
             byte = self._read_byte()
+            print(f"DEBUG _read_name: read byte {chr(byte) if 32 <= byte < 127 else byte} at offset {self.offset}")
             if byte == -1:
                 break
 
