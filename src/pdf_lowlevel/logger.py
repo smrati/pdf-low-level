@@ -1,26 +1,89 @@
 """
 Logging configuration for pdf-lowlevel.
 
-Uses loguru for structured, colorful logging.
+Uses Python's native logging module with colorful output.
 """
 
+import logging
 import sys
 from typing import Optional
 
-from loguru import logger
 
-# Remove default handler
-logger.remove()
+# ANSI color codes for terminal output
+class Colors:
+    """ANSI color codes for log formatting."""
+    GREEN = '\033[32m'
+    CYAN = '\033[36m'
+    YELLOW = '\033[33m'
+    RED = '\033[31m'
+    BOLD_RED = '\033[1;31m'
+    RESET = '\033[0m'
 
-# Add custom handler with appropriate format
-logger.add(
-    sys.stderr,
-    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    level="INFO",
-    colorize=True,
-)
+    # Level-specific colors
+    LEVEL_COLORS = {
+        'DEBUG': CYAN,
+        'INFO': GREEN,
+        'WARNING': YELLOW,
+        'ERROR': RED,
+        'CRITICAL': BOLD_RED,
+    }
 
-# Export the configured logger
+
+class ColorfulFormatter(logging.Formatter):
+    """Custom formatter with colorful output mimicking loguru style."""
+
+    def format(self, record):
+        # Get color for level
+        level_color = Colors.LEVEL_COLORS.get(record.levelname, Colors.RESET)
+        
+        # Format timestamp
+        asctime = self.formatTime(record, self.datefmt)
+        
+        # Build the formatted message with colors
+        formatted = (
+            f"{Colors.GREEN}{asctime}{Colors.RESET} | "
+            f"{level_color}{record.levelname:<8}{Colors.RESET} | "
+            f"{Colors.CYAN}{record.name}{Colors.RESET}:"
+            f"{Colors.CYAN}{record.funcName}{Colors.RESET}:"
+            f"{Colors.CYAN}{record.lineno}{Colors.RESET} - "
+            f"{level_color}{record.getMessage()}{Colors.RESET}"
+        )
+        
+        # Add exception info if present
+        if record.exc_info:
+            formatted += '\n' + self.formatException(record.exc_info)
+        
+        return formatted
+
+
+class PlainFormatter(logging.Formatter):
+    """Plain formatter without colors for file output."""
+
+    def format(self, record):
+        # Format timestamp
+        asctime = self.formatTime(record, self.datefmt)
+        
+        # Build the formatted message
+        formatted = (
+            f"{asctime} | "
+            f"{record.levelname:<8} | "
+            f"{record.name}:{record.funcName}:{record.lineno} - "
+            f"{record.getMessage()}"
+        )
+        
+        # Add exception info if present
+        if record.exc_info:
+            formatted += '\n' + self.formatException(record.exc_info)
+        
+        return formatted
+
+
+# Create the logger instance
+logger = logging.getLogger('pdf_lowlevel')
+logger.setLevel(logging.DEBUG)
+logger.propagate = False  # Don't propagate to root logger
+
+# Export the configure function
 __all__ = ["logger", "configure_logger"]
 
 
@@ -34,22 +97,36 @@ def configure_logger(
 
     Args:
         level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        format: Custom format string (optional)
+        format: Custom format string (optional, ignored - kept for API compatibility)
         sink: Output sink - file path for file logging, None for stderr
     """
-    logger.remove()
-
-    if format is None:
-        format = (
-            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-            "<level>{level: <8}</level> | "
-            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-            "<level>{message}</level>"
-        )
-
+    # Clear existing handlers
+    logger.handlers.clear()
+    
+    # Convert level string to logging constant
+    level_map = {
+        'DEBUG': logging.DEBUG,
+        'INFO': logging.INFO,
+        'WARNING': logging.WARNING,
+        'ERROR': logging.ERROR,
+        'CRITICAL': logging.CRITICAL,
+    }
+    log_level = level_map.get(level.upper(), logging.INFO)
+    logger.setLevel(log_level)
+    
+    # Create appropriate handler
     if sink:
-        # Log to file
-        logger.add(sink, format=format, level=level, rotation="10 MB")
+        # Log to file (no colors)
+        handler = logging.FileHandler(sink, encoding='utf-8')
+        handler.setFormatter(PlainFormatter(datefmt='%Y-%m-%d %H:%M:%S'))
     else:
-        # Log to stderr
-        logger.add(sys.stderr, format=format, level=level, colorize=True)
+        # Log to stderr with colors
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(ColorfulFormatter(datefmt='%Y-%m-%d %H:%M:%S'))
+    
+    handler.setLevel(log_level)
+    logger.addHandler(handler)
+
+
+# Configure default logging on import
+configure_logger()

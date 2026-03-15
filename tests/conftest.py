@@ -4,6 +4,7 @@ Shared fixtures for pdf-lowlevel tests.
 Provides sample PDFs, test data, and common utilities.
 """
 
+import logging
 import pytest
 from io import BytesIO
 from typing import BinaryIO
@@ -357,22 +358,13 @@ def tokenizer_test_cases():
 
 @pytest.fixture
 def suppress_logging():
-    """Suppress loguru logging during tests."""
-    from pdf_lowlevel.logger import logger
+    """Suppress logging during tests."""
+    from pdf_lowlevel.logger import logger, configure_logger
 
-    # Remove existing handlers and add null handler
-    logger.remove()
-    logger.add(
-        lambda msg: None,
-        level="CRITICAL",
-    )
+    # Clear existing handlers and add null handler
+    logger.handlers.clear()
+    null_handler = logging.NullHandler()
+    logger.addHandler(null_handler)
     yield
     # Restore default logging
-    logger.remove()
-    import sys
-    logger.add(
-        sys.stderr,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-        level="INFO",
-        colorize=True,
-    )
+    configure_logger(level="INFO")
